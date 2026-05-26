@@ -1,0 +1,723 @@
+{
+  "total": 100,
+  "scenarios": [
+    {
+      "id": 1,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "현재 디렉토리의 Python 파일 개수를 세어줘"
+    },
+    {
+      "id": 2,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "git log --oneline -10 실행해줘"
+    },
+    {
+      "id": 3,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "uv pip list로 설치된 패키지 목록 보여줘"
+    },
+    {
+      "id": 4,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "find /tmp -size +100M 실행해서 큰 파일 찾아줘"
+    },
+    {
+      "id": 5,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "ps aux | grep python 실행해줘"
+    },
+    {
+      "id": 6,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "find . -name '*.py' | xargs wc -l | tail -1 로 전체 코드 라인 수 세어줘"
+    },
+    {
+      "id": 7,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "top -l 1 | head -20 으로 CPU/메모리 현황 보여줘"
+    },
+    {
+      "id": 8,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "printenv | sort 로 환경변수 목록 출력해줘"
+    },
+    {
+      "id": 9,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "git diff --name-only 로 수정된 파일 목록 보여줘"
+    },
+    {
+      "id": 10,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "du -sh * | sort -hr | head -5 로 가장 큰 항목 찾아줘"
+    },
+    {
+      "id": 11,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "df -h 로 디스크 사용량 확인해줘"
+    },
+    {
+      "id": 12,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "find . -mtime -3 -type f 로 최근 3일 이내 수정 파일 찾아줘"
+    },
+    {
+      "id": 13,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "python --version && pip --version 출력해줘"
+    },
+    {
+      "id": 14,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "grep -n '.env' .gitignore 실행해서 .env가 gitignore에 있는지 확인해줘"
+    },
+    {
+      "id": 15,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "grep -rn 'TODO' . --include='*.py' 로 TODO 주석 찾아줘"
+    },
+    {
+      "id": 16,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "lsof -i :8082 로 8082 포트 사용 프로세스 확인해줘"
+    },
+    {
+      "id": 17,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "wc -l dataset/*.jsonl 로 캡처 파일 라인 수 확인해줘"
+    },
+    {
+      "id": 18,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "ls -la script/ 로 script 폴더 파일 권한 확인해줘"
+    },
+    {
+      "id": 19,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "ls -la | grep '^\\.' 로 숨김 파일 목록 보여줘"
+    },
+    {
+      "id": 20,
+      "tools": [
+        "Bash"
+      ],
+      "prompt": "git status 실행해줘"
+    },
+    {
+      "id": 21,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "pyproject.toml 읽어줘"
+    },
+    {
+      "id": 22,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "README.md 읽어줘"
+    },
+    {
+      "id": 23,
+      "tools": [
+        "Read"
+      ],
+      "prompt": ".env.example 읽어줘"
+    },
+    {
+      "id": 24,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "module/proxy_logger.py 읽어줘"
+    },
+    {
+      "id": 25,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "CLAUDE.md 읽어줘"
+    },
+    {
+      "id": 26,
+      "tools": [
+        "Read"
+      ],
+      "prompt": ".gitignore 읽어줘"
+    },
+    {
+      "id": 27,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "script/start_proxy.sh 읽어줘"
+    },
+    {
+      "id": 28,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "AGENTS.md 읽어줘"
+    },
+    {
+      "id": 29,
+      "tools": [
+        "Read"
+      ],
+      "prompt": ".python-version 읽어줘"
+    },
+    {
+      "id": 30,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "uv.lock에서 anthropic 패키지 항목을 찾아줘"
+    },
+    {
+      "id": 31,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "dataset/proxy.log 읽어줘"
+    },
+    {
+      "id": 32,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "script/stop_proxy.sh 읽어줘"
+    },
+    {
+      "id": 33,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "module/proxy_logger.py에서 _SKIP_HEADERS 변수를 찾아줘"
+    },
+    {
+      "id": 34,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "pyproject.toml에서 requires-python 값을 확인해줘"
+    },
+    {
+      "id": 35,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "dataset/scenarios.json 읽어줘"
+    },
+    {
+      "id": 36,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "script/start_proxy.sh에서 PID_FILE 경로를 확인해줘"
+    },
+    {
+      "id": 37,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "module/proxy_logger.py에서 handle 함수를 읽어줘"
+    },
+    {
+      "id": 38,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "pyproject.toml의 dev dependencies를 확인해줘"
+    },
+    {
+      "id": 39,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "README.md에서 Scenario B 섹션을 읽어줘"
+    },
+    {
+      "id": 40,
+      "tools": [
+        "Read"
+      ],
+      "prompt": "module/proxy_logger.py의 main 함수를 읽어줘"
+    },
+    {
+      "id": 41,
+      "tools": [
+        "Write"
+      ],
+      "prompt": "module/utils.py 파일을 새로 만들어줘. JSON 파일을 읽는 load_json(path) 함수 포함"
+    },
+    {
+      "id": 42,
+      "tools": [
+        "Write"
+      ],
+      "prompt": "dataset/sample_bash_tool_use.json을 만들어줘. Bash tool_use 블록 예시 JSON 포함"
+    },
+    {
+      "id": 43,
+      "tools": [
+        "Write"
+      ],
+      "prompt": "module/token_estimator.py를 만들어줘. 텍스트를 받아 대략적인 토큰 수를 반환하는 estimate(text) 함수 포함"
+    },
+    {
+      "id": 44,
+      "tools": [
+        "Write"
+      ],
+      "prompt": "module/schema_diff.py를 만들어줘. 두 tool schema dict를 비교해 차이점을 반환하는 diff(a, b) 함수 포함"
+    },
+    {
+      "id": 45,
+      "tools": [
+        "Write"
+      ],
+      "prompt": "dataset/tool_labels_ko.json을 만들어줘. Bash, Read, Write, Edit, WebSearch, TodoWrite 각각의 한국어 레이블 포함"
+    },
+    {
+      "id": 46,
+      "tools": [
+        "Write"
+      ],
+      "prompt": "module/chart_helpers.py를 만들어줘. 툴별 토큰 비교 grouped bar chart를 그리는 plot_comparison(df) 함수 포함"
+    },
+    {
+      "id": 47,
+      "tools": [
+        "Write"
+      ],
+      "prompt": "script/clean_dataset.sh를 만들어줘. dataset/*.jsonl 파일을 삭제하는 스크립트"
+    },
+    {
+      "id": 48,
+      "tools": [
+        "Write"
+      ],
+      "prompt": "module/jsonl_utils.py를 만들어줘. JSONL 파일을 읽고 tool_count 기준으로 내림차순 정렬하는 함수 포함"
+    },
+    {
+      "id": 49,
+      "tools": [
+        "Write"
+      ],
+      "prompt": "dataset/experiment_config.json을 만들어줘. model, proxy_port, log_path 필드 포함"
+    },
+    {
+      "id": 50,
+      "tools": [
+        "Write"
+      ],
+      "prompt": "module/__init__.py를 만들어줘. proxy_logger에서 PORT와 LOG_FILE을 re-export"
+    },
+    {
+      "id": 51,
+      "tools": [
+        "Write"
+      ],
+      "prompt": "tests/test_jsonl_utils.py를 만들어줘. jsonl_utils의 읽기 함수 단위 테스트 포함"
+    },
+    {
+      "id": 52,
+      "tools": [
+        "Write"
+      ],
+      "prompt": "dataset/schemas_approx.json을 만들어줘. 실험에서 정의한 6개 tool schema를 JSON으로 저장"
+    },
+    {
+      "id": 53,
+      "tools": [
+        "Write"
+      ],
+      "prompt": "script/run_notebook.sh를 만들어줘. uv run jupyter nbconvert로 run.ipynb를 실행하는 스크립트"
+    },
+    {
+      "id": 54,
+      "tools": [
+        "Write"
+      ],
+      "prompt": "module/capture_stats.py를 만들어줘. captured_requests.jsonl을 읽어 tool_count 통계를 dict로 반환하는 함수 포함"
+    },
+    {
+      "id": 55,
+      "tools": [
+        "Write"
+      ],
+      "prompt": "CHANGELOG.md를 새로 만들어줘. 오늘 날짜와 초기 릴리스 항목 포함"
+    },
+    {
+      "id": 56,
+      "tools": [
+        "Edit"
+      ],
+      "prompt": "pyproject.toml의 description을 'Claude Code 내장 툴 API 호출 분석 실험'으로 수정해줘"
+    },
+    {
+      "id": 57,
+      "tools": [
+        "Edit"
+      ],
+      "prompt": ".gitignore에 *.png 줄을 추가해줘"
+    },
+    {
+      "id": 58,
+      "tools": [
+        "Edit"
+      ],
+      "prompt": ".env.example에 LOG_LEVEL=INFO 항목을 추가해줘"
+    },
+    {
+      "id": 59,
+      "tools": [
+        "Edit"
+      ],
+      "prompt": "script/start_proxy.sh에서 sleep 1을 sleep 2로 바꿔줘"
+    },
+    {
+      "id": 60,
+      "tools": [
+        "Edit"
+      ],
+      "prompt": "module/proxy_logger.py에서 PORT = 8082를 PORT = int(os.getenv('PROXY_PORT', '8082'))로 수정해줘"
+    },
+    {
+      "id": 61,
+      "tools": [
+        "Edit"
+      ],
+      "prompt": "pyproject.toml의 requires-python을 '>=3.11'로 변경해줘"
+    },
+    {
+      "id": 62,
+      "tools": [
+        "Edit"
+      ],
+      "prompt": ".gitignore에 dataset/*.jsonl 줄을 추가해줘"
+    },
+    {
+      "id": 63,
+      "tools": [
+        "Edit"
+      ],
+      "prompt": "module/proxy_logger.py에서 timeout=180을 timeout=300으로 바꿔줘"
+    },
+    {
+      "id": 64,
+      "tools": [
+        "Edit"
+      ],
+      "prompt": "README.md의 프로젝트 구조 섹션에 '├── tests/' 항목을 추가해줘"
+    },
+    {
+      "id": 65,
+      "tools": [
+        "Edit"
+      ],
+      "prompt": "pyproject.toml에 authors = [{name = 'Braincrew'}] 필드를 추가해줘"
+    },
+    {
+      "id": 66,
+      "tools": [
+        "Edit"
+      ],
+      "prompt": "script/start_proxy.sh에서 하드코딩된 8082를 $PORT 변수로 교체해줘"
+    },
+    {
+      "id": 67,
+      "tools": [
+        "Edit"
+      ],
+      "prompt": "module/proxy_logger.py에서 'https://api.anthropic.com' 문자열을 UPSTREAM 상수로 이미 분리되어 있는지 확인하고 없으면 분리해줘"
+    },
+    {
+      "id": 68,
+      "tools": [
+        "Edit"
+      ],
+      "prompt": ".gitignore에 .proxy.pid 줄을 추가해줘"
+    },
+    {
+      "id": 69,
+      "tools": [
+        "Edit"
+      ],
+      "prompt": "README.md의 Scenario A 제목을 'Scenario A — Section 1~3 (프록시 없이 바로 실행 가능)'으로 수정해줘"
+    },
+    {
+      "id": 70,
+      "tools": [
+        "Edit"
+      ],
+      "prompt": "script/start_proxy.sh에서 echo 메시지를 영어에서 한국어로 변경해줘"
+    },
+    {
+      "id": 71,
+      "tools": [
+        "WebSearch"
+      ],
+      "prompt": "Anthropic tool_use API 공식 문서 URL을 찾아줘"
+    },
+    {
+      "id": 72,
+      "tools": [
+        "WebSearch"
+      ],
+      "prompt": "aiohttp reverse proxy 구현 예제를 검색해줘"
+    },
+    {
+      "id": 73,
+      "tools": [
+        "WebSearch"
+      ],
+      "prompt": "Claude API 모델별 입력 토큰 가격을 검색해줘"
+    },
+    {
+      "id": 74,
+      "tools": [
+        "WebSearch"
+      ],
+      "prompt": "httpx AsyncClient event hooks 사용 방법을 검색해줘"
+    },
+    {
+      "id": 75,
+      "tools": [
+        "WebSearch"
+      ],
+      "prompt": "jupyter nbconvert CLI 실행 옵션을 검색해줘"
+    },
+    {
+      "id": 76,
+      "tools": [
+        "WebSearch"
+      ],
+      "prompt": "anthropic-sdk-python 최신 릴리스 버전을 검색해줘"
+    },
+    {
+      "id": 77,
+      "tools": [
+        "WebSearch"
+      ],
+      "prompt": "matplotlib grouped bar chart와 stacked bar chart 예제를 검색해줘"
+    },
+    {
+      "id": 78,
+      "tools": [
+        "WebSearch"
+      ],
+      "prompt": "uv python 가상환경 관리 명령어를 검색해줘"
+    },
+    {
+      "id": 79,
+      "tools": [
+        "WebSearch"
+      ],
+      "prompt": "bash nohup 백그라운드 실행 PID 저장 방법을 검색해줘"
+    },
+    {
+      "id": 80,
+      "tools": [
+        "WebSearch"
+      ],
+      "prompt": "Claude Code tool schema 구조에 대한 문서를 검색해줘"
+    },
+    {
+      "id": 81,
+      "tools": [
+        "TodoWrite"
+      ],
+      "prompt": "다음 작업들을 TODO로 등록해줘: 프록시 연동 테스트, Section 4 캡처 데이터 수집, 근사치 vs 실제 schema 비교 분석, Figure 개선, README 최종 검토"
+    },
+    {
+      "id": 82,
+      "tools": [
+        "TodoWrite"
+      ],
+      "prompt": "이번 주 연구 계획을 high/medium/low 우선순위 TODO로 만들어줘"
+    },
+    {
+      "id": 83,
+      "tools": [
+        "TodoWrite"
+      ],
+      "prompt": "proxy_logger.py에서 개선이 필요한 사항들을 TODO로 등록해줘"
+    },
+    {
+      "id": 84,
+      "tools": [
+        "TodoWrite"
+      ],
+      "prompt": "실험 실행 전 체크리스트 항목들을 순서대로 TODO로 만들어줘"
+    },
+    {
+      "id": 85,
+      "tools": [
+        "TodoWrite"
+      ],
+      "prompt": "module 폴더에 추가할 유틸리티 파일 목록을 medium 우선순위 TODO로 등록해줘"
+    },
+    {
+      "id": 86,
+      "tools": [
+        "Read",
+        "Edit"
+      ],
+      "prompt": "pyproject.toml을 읽고 description이 비어있으면 채워줘"
+    },
+    {
+      "id": 87,
+      "tools": [
+        "Bash",
+        "Read"
+      ],
+      "prompt": "git diff --stat 확인하고 변경된 파일 중 가장 큰 파일을 읽어줘"
+    },
+    {
+      "id": 88,
+      "tools": [
+        "Read",
+        "Write"
+      ],
+      "prompt": "README.md를 읽고 핵심 내용을 dataset/summary.md로 요약해서 저장해줘"
+    },
+    {
+      "id": 89,
+      "tools": [
+        "Bash",
+        "Write"
+      ],
+      "prompt": "uv pip list 결과를 dataset/installed_packages.txt로 저장해줘"
+    },
+    {
+      "id": 90,
+      "tools": [
+        "Read",
+        "TodoWrite"
+      ],
+      "prompt": "AGENTS.md를 읽고 업데이트가 필요한 항목을 TODO로 등록해줘"
+    },
+    {
+      "id": 91,
+      "tools": [
+        "Bash",
+        "Edit"
+      ],
+      "prompt": "ls -la script/ 로 실행 권한 확인하고 없는 파일에 chmod +x 적용해줘"
+    },
+    {
+      "id": 92,
+      "tools": [
+        "Read",
+        "Write"
+      ],
+      "prompt": "module/proxy_logger.py를 읽고 docstring 없는 함수에 한 줄 docstring 추가한 버전을 module/proxy_logger_v2.py로 저장해줘"
+    },
+    {
+      "id": 93,
+      "tools": [
+        "Read",
+        "WebSearch"
+      ],
+      "prompt": "pyproject.toml 읽고 각 의존성의 최신 버전을 검색해서 업데이트 필요한 패키지 알려줘"
+    },
+    {
+      "id": 94,
+      "tools": [
+        "Bash",
+        "Write"
+      ],
+      "prompt": "find . -name '*.py' -exec grep -l 'import' {} \\; 로 import가 있는 파일 찾아서 목록을 dataset/imports_map.txt에 저장해줘"
+    },
+    {
+      "id": 95,
+      "tools": [
+        "Read",
+        "TodoWrite"
+      ],
+      "prompt": "module/ 폴더 파일들 읽고 리팩토링이 필요한 부분을 TODO로 등록해줘"
+    },
+    {
+      "id": 96,
+      "tools": [
+        "Bash",
+        "Read",
+        "Write"
+      ],
+      "prompt": "git log --oneline -20 확인하고 커밋 메시지 패턴을 분석해서 dataset/commit_analysis.md 작성해줘"
+    },
+    {
+      "id": 97,
+      "tools": [
+        "Read",
+        "Edit"
+      ],
+      "prompt": "README.md 읽고 프로젝트 구조 섹션에 dataset/scenarios.json 항목을 추가해줘"
+    },
+    {
+      "id": 98,
+      "tools": [
+        "Bash",
+        "TodoWrite"
+      ],
+      "prompt": "find . -name 'test_*.py' 로 테스트 파일 찾고, 없으면 작성할 테스트 목록을 TODO로 등록해줘"
+    },
+    {
+      "id": 99,
+      "tools": [
+        "Read",
+        "Bash"
+      ],
+      "prompt": "script/start_proxy.sh 읽고 실제로 실행해서 프록시 상태를 확인해줘"
+    },
+    {
+      "id": 100,
+      "tools": [
+        "Read",
+        "Bash",
+        "Write",
+        "TodoWrite"
+      ],
+      "prompt": "프로젝트 전체를 점검해줘: README, pyproject.toml, module/, script/ 확인하고 개선 사항을 TODO로 등록하고 dataset/health_check.md에 보고서 작성해줘"
+    }
+  ]
+}

@@ -1,9 +1,16 @@
 [project]
 name = "deepagent-builtin-tools-analysis"
 version = "0.1.0"
-description = "Add your description here"
-requires-python = ">=3.12"
-dependencies = []
+description = "Claude Code 내장 툴 API 호출 분석 실험"
+authors = [{name = "Braincrew"}]
+requires-python = ">=3.11"
+dependencies = [
+    "aiohttp>=3.13.5",
+    "anthropic>=0.104.1",
+    "matplotlib>=3.10.9",
+    "pandas>=3.0.3",
+    "python-dotenv>=1.2.2",
+]
 
 [dependency-groups]
 dev = [
