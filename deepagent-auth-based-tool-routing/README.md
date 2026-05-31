@@ -1,8 +1,10 @@
-# DeepAgent + auth.md 기반 Tool 접근 권한 실험 보고서
+# Auth.md 기반 Skill 접근 권한 실험 보고서
 
 ## 개요
 
-`auth.md` 프로토콜(WorkOS, 2026)의 scope 시스템을 활용하여 `deepagents` 라이브러리(`create_deep_agent`)에서 **사용자 권한에 따라 다른 tool을 사용하게 할 수 있는지** 검증한다. 단일 tool 레벨 권한 제어(Exp 1)에서 출발하여, skill 레이어와 tool 레이어를 분리한 두 레이어 아키텍처(Exp 2)로 확장한다.
+`auth.md` 프로토콜(WorkOS, 2026)의 `skill:*` 스코프 체계를 활용하여 `deepagents` 라이브러리(`create_deep_agent`)에서 **사용자 권한에 따라 다른 skill(tool)을 실행하게 할 수 있는지** 검증한다.
+
+**핵심 질문**: `skill:*` 스코프 하나가 스킬 접근 + 내부 tool 실행을 모두 보장할 수 있는가?
 
 ---
 
@@ -13,228 +15,253 @@
 | `deepagents >= 0.6.3` | LangGraph 기반 agent harness (`create_deep_agent`) |
 | `langchain-anthropic >= 1.4.3` | LLM 연동 |
 | `langgraph >= 1.2.1` | 상태 그래프 기반 agent 실행 |
-| `langchain-community >= 0.4.2` | LangChain 커뮤니티 도구 |
 | Model | `anthropic:claude-haiku-4-5-20251001` |
 
-### auth.md 프로토콜
-
-```
-401 응답
-  └─> WWW-Authenticate 헤더 (resource_metadata URL)
-       └─> /.well-known/oauth-protected-resource
-            └─> /.well-known/oauth-authorization-server
-                 └─> agent_auth 블록 (register_uri, scopes 등)
-```
-
-YAML frontmatter + Markdown 본문 형식으로 서비스 루트에 배포되며,
-커스텀 scope(`analytics:read`, `billing:read`, `model:invoke` 등)를 frontmatter에 추가하여 확장한다.
-
 ---
 
-## 실험 1: Tool 레벨 권한 라우팅 (`run.ipynb`)
-
-### 실험 설계
-
-**대상**: 8개 tool, 5개 역할
-
-| Tool | 분류 | Required Scope |
-|---|---|---|
-| `query_internal_db` | 내부 | `read:internal` |
-| `write_internal_db` | 내부 | `write:internal` |
-| `read_internal_file` | 내부 | `read:internal` |
-| `web_search` | 외부 | `read:external` |
-| `send_notification` | 외부 | `write:external` |
-| `admin_system_config` | 관리자 | `admin:all` |
-| `get_analytics_report` | 커스텀 | `analytics:read` |
-| `invoke_ai_model` | 커스텀 | `model:invoke` |
-
-**역할별 scope 설계**:
-
-| 역할 | 보유 scope |
-|---|---|
-| admin | 전체 8개 (커스텀 포함) |
-| developer | `read:internal`, `write:internal`, `read:external`, `model:invoke` |
-| analyst | `read:internal`, `read:external`, `analytics:read` |
-| viewer | `read:internal`, `read:external` |
-| guest | 없음 |
-
-### 두 가지 접근법 비교
-
-#### Approach A: 정적 권한 필터링 (Static)
-
-agent 초기화 시 1회 scope를 검사하여 허용된 tool만 `create_deep_agent`에 주입한다.
-
-```
-사용자 role → auth.md roles[role] → scope 추출
-  → ALL_TOOLS 필터링 → create_deep_agent(tools=allowed_only)
-  → LLM은 허용된 tool만 인식 (미허용 tool 정보 노출 차단)
-```
-
-#### Approach B: 동적 권한 미들웨어 (Dynamic)
-
-전체 tool을 클로저로 래핑하여 실행 시점에 scope를 확인한다.
-
-```
-원본 @tool.func 추출
-  → @wraps 클로저에 auth 체크 주입
-  → StructuredTool.from_function(args_schema=원본 유지)
-  → create_deep_agent(tools=all_wrapped)
-  → 호출 시 has_scope() → 통과/AUTH DENIED
-```
-
-> **구현 이슈**: `BaseTool` 서브클래싱 시 deepagents + Pydantic v2 제네릭 재귀 문제 발생.
-> `StructuredTool.from_function` + `@wraps` 클로저로 회피.
-
-#### 비교표
-
-| 항목 | Static | Dynamic |
-|---|---|---|
-| 필터 시점 | Agent init 1회 | Tool 호출마다 |
-| LLM tool 노출 | 허용 tool만 **(보안 강함)** | 전체 tool 노출 |
-| Scope 업그레이드 | 재초기화 필요 | 즉시 반영 **(강점)** |
-| Token 효율 | 높음 **(강점)** | 낮음 |
-| 구현 복잡도 | 낮음 | 중간 |
-| auth.md 플로우 | Agent Verified | User Claimed **(강점)** |
-| 커스텀 scope | 가능 | 가능 |
-| 추천 상황 | 역할 고정, 배치, 보안 강조 | SaaS, 실시간 권한 변경 |
-
-### Scope 업그레이드 (User Claimed 플로우)
-
-Dynamic Auth의 핵심 시나리오 — 동일 agent 인스턴스에서 OTP 인증 후 즉시 반영:
-
-```
-viewer로 시작 → send_notification 호출 → AUTH DENIED
-  → POST /agent/auth/claim         (OTP 이메일 발송)
-  → POST /agent/auth/claim/complete (OTP 검증)
-  → auth_ctx.upgrade_scope("write:external")
-  → 동일 agent 재시도 → 성공
-```
-
-Static Auth는 이 시나리오를 지원할 수 없다.
-
-### Pass Rate 결과 (계산 기반)
-
-테스트 매트릭스: 5개 역할 × 8개 쿼리
-
-| 역할 | Tool 가용률 | Query 통과율 |
-|---|---|---|
-| admin | 100% (8/8) | 100% (8/8) |
-| developer | 50% (4/8) | 50% (4/8) |
-| analyst | 38% (3/8) | 38% (3/8) |
-| viewer | 25% (2/8) | 25% (2/8) |
-| guest | 0% (0/8) | 0% (0/8) |
-
----
-
-## 실험 2: Two-Layer 권한 아키텍처 (`skills_auth_routing.ipynb`)
-
-### 아키텍처
+## 아키텍처
 
 ```
 사용자
   ↓
-auth.md (단일 권한 소스)
-  ├── skill:* 스코프 → skills.md 접근 게이팅 (Layer 1)
-  └── read:*/write:* 스코프 → 스킬 내부 Tool 실행 게이팅 (Layer 2)
+auth.md  (skill:* 스코프만 정의)
   ↓
-선택적 skills.md 접근 (Layer 1 통과한 스킬만 로드)
+get_accessible_skills()  → skill:* 스코프로 필터링
   ↓
-Skill Layer (복합 워크플로우)
+create_agent()  → 접근 가능 skill만 tool 목록에 주입
   ↓
-Tool Layer (원자적 API/DB 접근)
+Tool Layer  (원자적 실행, 별도 scope 체크 없음)
 ```
 
-skills.md는 독립적인 권한 시스템이 아니라 auth.md scope에 의존하는 **레지스트리**다.
-
-### 스킬 레지스트리 (skills.md)
-
-| 스킬 | Layer 1 게이트 (auth.md) | Layer 2 필요 tool scope |
-|---|---|---|
-| `research_skill` | `skill:research` | `read:external` |
-| `data_analysis_skill` | `skill:data_analysis` | `read:internal`, `read:external` |
-| `notification_skill` | `skill:notification` | `write:external` |
-| `reporting_skill` | `skill:reporting` | `read:internal`, `read:external`, `write:external` |
-| `code_review_skill` | `skill:code_review` | `read:internal` |
-
-### 역할 설계 (핵심: analyst_restricted)
-
-| 역할 | skill 스코프 | tool 스코프 |
-|---|---|---|
-| admin | 전체 5개 | 전체 |
-| analyst | research, data_analysis, reporting | `read:internal`, `read:external` |
-| **analyst_restricted** | research, data_analysis, reporting | `read:external` **(read:internal 없음)** |
-| developer | research, notification, code_review | `read:internal`, `read:external`, `write:external` |
-| viewer | research | `read:external` |
-| guest | 없음 | 없음 |
-
-### 핵심 발견: 부분 실패(Partial Fail)
-
-`analyst_restricted`는 두 레이어 구조에서만 관찰 가능한 **부분 실패** 케이스를 만들어낸다.
-
-```
-data_analysis_skill 실행 요청
-  → Layer 1: skill:data_analysis 보유 → skills.md 접근 허용
-  → Layer 2: read:internal 없음 → DB 조회 tool 차단
-  → 결과: 스킬은 로드되지만 실행 중 부분 실패
-```
-
-단일 레이어(Tool 실험)에서는 완전 성공(1) 또는 완전 실패(0)만 존재한다.
-두 레이어 구조에서는 `0 < 결과 < 1`인 부분 실패 케이스가 등장한다.
-
-### Pass Rate 결과 (계산 기반)
-
-테스트 매트릭스: 6개 역할 × 5개 쿼리
-
-| 역할 | L1 통과율(skill) | L2 통과율(tool) | E2E 통과율 | 부분실패율 |
-|---|---|---|---|---|
-| admin | 100% (5/5) | 100% (5/5) | 100% (5/5) | 0% |
-| analyst | 60% (3/5) | 100% (3/3) | 60% (3/5) | 0% |
-| **analyst_restricted** | **60% (3/5)** | **33% (1/3)** | **20% (1/5)** | **40%** |
-| developer | 60% (3/5) | 100% (3/3) | 60% (3/5) | 0% |
-| viewer | 20% (1/5) | 100% (1/1) | 20% (1/5) | 0% |
-| guest | 0% (0/5) | N/A | 0% (0/5) | 0% |
-
-### 시각화
-
-`pass_rate_analysis.png` — 3개 Figure:
-- **Fig 1**: 역할별 L1 / E2E / 부분실패율 Grouped Bar
-- **Fig 2**: 역할별 쿼리 분류 Stacked Bar (E2E 성공 / 부분 실패 / L1 차단)
-- **Fig 3**: Static(계산) vs Dynamic(실행) E2E 비교
+**핵심 원칙**: `skill:*` 스코프 하나가 스킬 접근 + 내부 tool 실행을 **모두 보장**한다. 별도 `read:*/write:*` 스코프 불필요 — skill 권한이 tool 권한을 내포한다.
 
 ---
 
-## 종합 결론
+## Part 1: auth.md — skill:* 스코프 단일 소스
 
-### 검증 결과
+`skill:*` 스코프만 정의한다. `read:*/write:*` tool 스코프는 `roles`에 존재하지 않는다.
 
-1. **두 접근법 모두 `create_deep_agent`에서 정상 동작** — auth.md scope 체계를 DeepAgents에 직접 적용 가능하다.
-2. **커스텀 scope**(`analytics:read`, `model:invoke` 등)도 동일 패턴으로 확장된다.
-3. **`analyst_restricted` 케이스가 두 레이어 구조의 가치를 증명**한다 — 단일 레이어에서는 관찰 불가능한 "부분 실패율"이라는 지표가 생긴다. 이 값이 0이 아니면 auth.md role 설계 검토가 필요하다는 신호다.
+```yaml
+version: "1.0"
+service: "research-platform.internal"
 
-### 권장 아키텍처
+scopes:
+  skill:research:      "research_skill 실행 권한 (내부 tool 포함)"
+  skill:data_analysis: "data_analysis_skill 실행 권한 (내부 tool 포함)"
+  skill:notification:  "notification_skill 실행 권한 (내부 tool 포함)"
+  skill:reporting:     "reporting_skill 실행 권한 (내부 tool 포함)"
+  skill:code_review:   "code_review_skill 실행 권한 (내부 tool 포함)"
 
-| 상황 | 권장 |
-|---|---|
-| 역할 고정 + 보안 민감 | **Static** (미허용 tool 자체를 LLM에서 숨김) |
-| 세션 중 scope 변경 필요 | **Dynamic** (User Claimed OTP 플로우 연동) |
-| 일반 SaaS / Multi-tenant | **Hybrid** — 기본 tool Static + 업그레이드 가능 tool Dynamic |
-| 복합 워크플로우 시스템 | **Two-Layer** — skill 레이어 + tool 레이어 분리 |
-
-### 실제 서비스 연동 패턴
-
-```python
-# 원격 auth.md fetch + agent 생성
-auth_md  = fetch_auth_md_sync("https://my-service.com")
-auth_ctx = AuthContext(user_id, role, auth_md=auth_md)
-agent    = create_static_agent(auth_ctx)   # 또는 dynamic / two-layer
+roles:
+  admin:              [skill:research, skill:data_analysis, skill:notification, skill:reporting, skill:code_review]
+  analyst:            [skill:research, skill:data_analysis, skill:reporting]
+  analyst_restricted: [skill:research, skill:data_analysis]
+  developer:          [skill:research, skill:notification, skill:code_review]
+  viewer:             [skill:research]
+  guest:              []
 ```
 
-### 추가 탐색 주제
+---
 
-- **audit log**: `(user_id, tool_name, scope, timestamp)` 기록으로 권한 감사 추적
-- **DeepAgents 내장 tool에 auth 적용**: `write_file`, `execute` 등에 scope 추가
-- **MCP tool 통합**: MCP 서버 tool에도 `AuthWrappedTool` 패턴 적용
-- **Hybrid 구현**: 기본 scope Static 필터 + 업그레이드 scope Dynamic 래핑 혼용
+## Part 2: SKILL_REGISTRY — scope → StructuredTool 직접 매핑
+
+`skills.md` 파일 없음. 스킬은 `scope → StructuredTool`로 직접 정의한다.
+
+| scope | tool 이름 | 내부 동작 |
+|---|---|---|
+| `skill:research` | `research_skill` | 외부 웹 크롤러 호출 |
+| `skill:data_analysis` | `data_analysis_skill` | 내부 DB 조회 + 통계 계산 |
+| `skill:notification` | `notification_skill` | Slack 채널 알림 발송 |
+| `skill:reporting` | `reporting_skill` | 외부 보고서 배포 시스템 호출 |
+| `skill:code_review` | `code_review_skill` | 외부 정적 분석 엔진 호출 |
+
+> `reporting_skill`, `code_review_skill`의 description에 "LLM이 자체 생성할 수 없는 실행 고유 ID"를 명시하여 hallucination(LLM 자체 답변으로 대체) 방지.
+
+---
+
+## Part 3: 구현 — AuthContext & create_agent
+
+### AuthContext
+
+```python
+class AuthContext:
+    def __init__(self, user_id: str, role: str, auth_md: dict | None = None):
+        self.scopes: set[str] = set(auth_md["roles"].get(role, []))
+
+    def can_access_skill(self, skill_scope: str) -> bool:
+        return skill_scope in self.scopes
+
+    def upgrade_scope(self, new_scope: str, reason: str = "OTP claim confirmed"):
+        if new_scope in AUTH_MD["scopes"]:
+            self.scopes.add(new_scope)
+```
+
+### create_agent
+
+```python
+def create_agent(auth_ctx: AuthContext):
+    accessible = {
+        scope: tool
+        for scope, tool in SKILL_REGISTRY.items()
+        if auth_ctx.can_access_skill(scope)
+    }
+    if not accessible:
+        return None  # guest 등 빈 스코프 → 조기 차단
+    return create_deep_agent(model=MODEL, tools=list(accessible.values()))
+```
+
+---
+
+## 실험 1: 역할별 skill 접근 제어
+
+### 역할별 보유 스코프
+
+| 역할 | 보유 skill 스코프 | 접근 가능 skill 수 |
+|---|---|---|
+| admin | 전체 5개 | 5/5 |
+| analyst | research, data_analysis, reporting | 3/5 |
+| analyst_restricted | research, data_analysis | 2/5 |
+| developer | research, notification, code_review | 3/5 |
+| viewer | research | 1/5 |
+| guest | 없음 | 0/5 |
+
+### 실행 결과 요약
+
+- `admin` → reporting, code_review 포함 전체 skill 실행 성공
+- `analyst` → data_analysis, reporting 실행 / notification·code_review 차단 (정상)
+- `analyst_restricted` → research, data_analysis만 실행 / reporting 차단 (정상)
+- `viewer` → research만 실행
+- `guest` → agent 생성 불가 (`None` 반환)
+
+---
+
+## 실험 2: Scope 업그레이드 (OTP 플로우)
+
+동일 사용자(`analyst_restricted`)가 OTP 인증 후 `skill:reporting`을 획득하는 시나리오.
+
+```python
+# Step 1: skill:reporting 없음 → reporting_skill 차단
+agent = create_agent(diana_r)  # tool 목록에 reporting_skill 없음
+
+# OTP 플로우
+# POST /agent/auth/claim          → OTP 이메일 발송
+# POST /agent/auth/claim/complete → 검증 완료
+diana_r.upgrade_scope("skill:reporting", reason="OTP claim confirmed")
+
+# Step 2: 반드시 agent 재생성 → 새 tool 목록 반영
+agent = create_agent(diana_r)  # reporting_skill 추가됨
+```
+
+> 기존 agent 인스턴스는 `upgrade_scope()` 후에도 이전 tool 목록을 유지한다. 권한 변경 후 반드시 `create_agent()` 재호출 필요.
+
+---
+
+## Pass Rate 측정 — 30개 시나리오 (6역할 × 5skill)
+
+### 평가 지표
+
+| 지표 | 정의 | 특성 |
+|---|---|---|
+| **Static** | auth.md 스코프 집합 연산으로 허용 skill 수 계산 | 결정론적, LLM 없음, CI 편입 가능 |
+| **Exec** | 허용된 skill 중 LLM이 실제 호출한 비율 | 실행 충실도, LLM 비용 발생 |
+| **Total** | 전체 30개 시나리오 정합률 (허용→호출 + 차단→미호출) | 시스템 전체 신뢰도 |
+
+**평가 흐름:**
+```
+auth.md roles → AuthContext.scopes
+    ↓ can_access_skill() 필터
+agent tool 목록 결정 (Static 확정)
+    ↓ 명시적 쿼리로 agent.invoke()
+wrap_for_tracking → tool 호출 여부 기록
+    ↓
+Exec Pass Rate / Total Pass Rate 계산
+```
+
+**쿼리 설계 원칙**: `"tool_name을 호출해서..."` 형식으로 tool 이름을 명시하여 LLM routing 오류 최소화.
+
+### 결과 (실제 LLM 실행)
+
+| 역할 | 허용(Static) | 실행성공/허용(Exec) | Total(30) | 판정 |
+|---|---|---|---|---|
+| admin | 5/5 (100%) | 5/5 (100%) | 100% | ✓ |
+| analyst | 3/5 (60%) | 3/3 (100%) | 100% | ✓ |
+| analyst_restricted | 2/5 (40%) | 2/2 (100%) | 100% | ✓ |
+| developer | 3/5 (60%) | 3/3 (100%) | 100% | ✓ |
+| viewer | 1/5 (20%) | 1/1 (100%) | 100% | ✓ |
+| guest | 0/5 (0%) | 0/0 (-) | 100% | ✓ |
+
+- **판정 기준**: ✓ 완전일치(Total ≥ 99%) | △ 부분일치(≥ 80%) | ✗ 불일치
+- **핵심 관찰**: Static은 역할마다 다르지만, Exec Pass Rate와 Total Pass Rate는 전 역할 100% 달성.
+- **"차단도 정답"**: guest처럼 허용 skill이 없어도, 차단 자체가 올바른 동작이므로 Total 100%.
+
+### analyst_restricted 상세 예시
+
+| 쿼리 (명시적) | required_skill | tool 목록 | 결과 |
+|---|---|---|---|
+| `research_skill을 호출해서...` | `skill:research` | ✓ 포함 | ✓ 호출됨 |
+| `data_analysis_skill을 호출해서...` | `skill:data_analysis` | ✓ 포함 | ✓ 호출됨 |
+| `reporting_skill을 호출해서...` | `skill:reporting` | ✗ 미포함 | - 차단(정상) |
+| `notification_skill을 호출해서...` | `skill:notification` | ✗ 미포함 | - 차단(정상) |
+| `code_review_skill을 호출해서...` | `skill:code_review` | ✗ 미포함 | - 차단(정상) |
+
+→ Static 40% (2/5) | Exec 100% (2/2) | **Total 100% (5/5)**
+
+---
+
+## 결론
+
+1. **`skill:*` 스코프 단일 레이어 아키텍처가 동작한다** — skill 권한 하나가 내부 tool 실행까지 보장한다.
+2. **Exec Pass Rate 100%** — 명시적 지시문 설계 + tool description에 외부 의존성 명시 시 LLM hallucination 없이 실제 tool 호출로 수렴.
+3. **구조 진화**: Two-Layer(skill scope + tool scope)는 체크 2회 + "부분 실패" 모호성 발생. `skill:*` 단일 스코프로 통합하면 체크 1회, 구현 단순.
+
+| 버전 | 구성 | 체크 횟수 |
+|---|---|---|
+| 원본 | auth.md(skill+tool 스코프) + skills.md(required_scope + tool_scopes) | 2회 |
+| 중간 | auth.md(tool 스코프만) + skills.md(tool_scopes) | 1회 |
+| **최종** | **auth.md(skill:* 스코프만) + SKILL_REGISTRY** | **1회 (단순)** |
+
+---
+
+## 운영 체크포인트
+
+**1. scope 이름 case-sensitive 매칭**
+- `skill:Research` ≠ `skill:research` → 타이포 하나로 해당 역할 전체 차단
+- SKILL_REGISTRY 키와 auth.md `scopes` 섹션이 **정확히 일치**해야 함
+- 권장: enum 또는 상수로 scope 이름 중앙 관리
+
+**2. SKILL_REGISTRY ↔ auth.md 동기화 필수**
+- auth.md에 scope 추가 → SKILL_REGISTRY에도 추가해야 tool 노출
+- SKILL_REGISTRY에 tool 추가 → auth.md scopes에도 정의해야 `upgrade_scope()` 유효
+- 둘 중 하나만 수정 시 영구 차단 또는 `upgrade_scope()` 무효
+
+**3. scope 업그레이드 후 agent 재생성 필수**
+- `upgrade_scope()` 후 기존 agent 인스턴스는 이전 tool 목록 유지
+- 반드시 `create_agent(auth_ctx)` 재호출로 agent 교체
+
+**4. guest / 빈 스코프 역할 처리**
+- `create_agent()` 가 `None` 반환 → upstream에서 None 체크 없으면 `AttributeError`
+- guest 역할은 agent 생성 전에 조기 차단(early return) 처리 권장
+
+**5. Exec < Static 불일치의 의미**
+- LLM이 허용된 tool을 호출하지 않는 것은 **auth 실패가 아님**
+- 원인: tool description 불명확, 쿼리와 tool 의미 불일치
+- 명시적 지시문(`tool_name을 호출해서`)으로 Exec ≈ Static 수렴 유도 가능
+
+**6. Static은 CI, Exec는 정기 검증**
+```python
+# CI: 결정론적 → 매 커밋 자동 검증, LLM 비용 없음
+EXPECTED_STATIC = {
+    "admin": 1.0, "analyst": 0.6, "analyst_restricted": 0.4,
+    "developer": 0.6, "viewer": 0.2, "guest": 0.0,
+}
+assert dynamic_results[role].static_pass_rate == EXPECTED_STATIC[role]
+
+# 정기 검증: 배포 전 또는 모델 교체 시 LLM 실행으로 Exec/Total 확인
+```
+
+**7. auth.md YAML 파싱 실패 시 전체 시스템 무력화**
+- frontmatter 형식 오류 → `ValueError` → `AuthContext` 생성 불가
+- startup health check에 파싱 성공 여부 포함 권장
 
 ---
 
@@ -242,17 +269,16 @@ agent    = create_static_agent(auth_ctx)   # 또는 dynamic / two-layer
 
 ```
 deepagent-auth-based-tool-routing/
-├── run.ipynb                    # 실험 1: Tool 레벨 권한 라우팅 (Static/Dynamic)
-├── skills_auth_routing.ipynb    # 실험 2: Two-Layer 권한 아키텍처 (Skill + Tool)
-├── pass_rate_analysis.png       # 시각화 결과 (Three Figure)
+├── skills_auth_routing.ipynb      # 메인 실험 노트북
+├── pass_rate_analysis.png         # 역할별 Target/Running Skill + Total Pass Rate 시각화
 ├── script/
-│   ├── gen_notebook.py          # run.ipynb 생성 스크립트
-│   └── gen_skills_notebook.py   # skills_auth_routing.ipynb 생성 스크립트
-└── pyproject.toml               # uv 의존성 관리
+│   └── gen_skills_notebook.py     # skills_auth_routing.ipynb 생성 스크립트
+└── pyproject.toml                 # uv 의존성 관리
 ```
 
+---
 
 ## 레퍼런스
+
 - https://workos.com/blog/agent-registration-with-auth-md
 - https://www.marktechpost.com/2026/05/25/workos-releases-auth-md-an-open-agent-registration-protocol-built-on-oauth-standards/
-- https://digitalbourgeois.tistory.com/m/3131

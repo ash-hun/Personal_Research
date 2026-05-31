@@ -18,3 +18,5 @@ AGENTS.md
 # Python
 __pycache__/
 *.py[cod]
+
+dynamic_auth_orchestration.ipynb
