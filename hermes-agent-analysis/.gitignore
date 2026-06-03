@@ -1,0 +1,20 @@
+# Claude Code
+CLAUDE.md
+AGENTS.md
+
+# Python version file (uv 자동 생성)
+.python-version
+
+# uv 가상환경
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+*_executed.ipynb
+
+# 시크릿
+.env
+
+# Python
+__pycache__/
+*.py[cod]
