@@ -34,7 +34,7 @@ Nous Research의 **Hermes Agent**에서 에이전트가 실제로 "행동"하는
 | **Toolset** | `toolsets.py::TOOLSETS`가 `{description, tools, includes}` dict. `resolve_toolset()`이 `includes`를 재귀적으로 펼치며 사이클/다이아몬드를 `visited` 셋으로 방지. `"all"`/`"*"`은 전체 확장 |
 | **Dispatch** | `tool_executor.py`가 배치마다 2-phase: ① 파싱 + 블록 판정(스코프/플러그인 pre-call/가드레일 `before_call`) ② 실행 + 분류 + `after_call`. 실제로는 ThreadPool로 **동시 실행**하고, 충돌 없는 read-only/경로분리 도구만 병렬화(`tool_dispatch_helpers.py`) |
 | **Guardrail** | `tool_guardrails.py::ToolCallGuardrailController`가 **턴 단위** 상태로 세 가지 루프 신호(같은 호출 반복 실패 / 같은 도구 반복 실패 / idempotent 무진전)를 추적. `warn`은 항상 켜져 막지 않고, `block`/`halt`는 opt-in |
-| **Approval** | `approval.py::check_dangerous_command`가 순서대로: **hardline 차단(무조건)** → yolo 우회 → 위험 패턴 감지 → 세션 승인 캐시 → 대화형 프롬프트. `{"approved": bool, "message": str|None}` 반환 |
+| **Approval** | `approval.py::check_dangerous_command`가 **고정된 순서로** 8분기 판정: ① 샌드박스 env(docker/singularity/modal/daytona) 자동 승인 → ② **hardline 차단(무조건, yolo보다 먼저)** → ③ yolo 우회 → ④ 위험 패턴 없음 통과 → ⑤ 세션 승인 캐시 → ⑥ 비대화형·비게이트웨이: cron `deny`면 차단·아니면 자동 승인 → ⑦ 게이트웨이/`HERMES_EXEC_ASK`: pending 승인요청 → ⑧ 대화형 프롬프트(deny/session/always). `{"approved": bool, "message": str|None, ...}` 반환 |
 | **분류** | `tool_result_classification.py::file_mutation_result_landed`(쓰기 성공 증명) + `tool_guardrails.py::classify_tool_failure`(에러 판정). 결과 문자열을 JSON 파싱해 `error`/`exit_code`/`bytes_written` 등을 검사 |
 | **피드백** | `tool_dispatch_helpers.py::make_tool_result_message`가 `role=tool` 메시지 생성. web/browser/mcp 등 **신뢰 불가 출처**의 출력은 `<untrusted_tool_result>` 델리미터로 감싸 프롬프트 인젝션 방어 |
 
@@ -114,10 +114,14 @@ ToolCall
   ▼
 [A.3] guardrails.before_call()       ── block/halt → 합성 결과로 BLOCKED
   ▼
-[A.4] approvals.check_dangerous_command()
-        hardline → 무조건 차단
+[A.4] approvals.check_dangerous_command()   (고정 순서)
+        샌드박스 env(docker/modal/…) → 자동 승인
+        hardline → 무조건 차단 (yolo보다 먼저)
         yolo     → 통과
-        위험 패턴 + 미승인 → 콜백 프롬프트 → deny면 BLOCKED
+        위험 패턴 없음 → 통과 / 세션 캐시 승인됨 → 통과
+        비대화형·비게이트웨이 → cron deny면 차단, 아니면 자동 승인
+        게이트웨이/EXEC_ASK → pending 승인요청
+        대화형 프롬프트 → deny면 BLOCKED
   ▼
 [B.1] entry.handler(**args)          ── 예외는 "Error executing tool ..."로 포착
   ▼
